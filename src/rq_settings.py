@@ -1,8 +1,14 @@
+import os
 import redis
 
-# Redis connection settings
+# Retrieve Redis connection settings from environment variables
+redis_host = os.getenv('REDIS_HOST', 'localhost')
+redis_port = int(os.getenv('REDIS_PORT', 6379))
+redis_password = os.getenv('REDIS_PASSWORD', '')
+
+# Redis connection
 redis_conn = redis.Redis(
-    host='redis-12397.c321.us-east-1-2.ec2.cloud.redislabs.com',
-    port=12397,
-    password='kya4np06wsCDCIMyYz3qWSRA6BTIt58Q'
+    host=redis_host,
+    port=redis_port,
+    password=redis_password
 )
