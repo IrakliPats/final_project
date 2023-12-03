@@ -1,5 +1,5 @@
 from fastapi import FastAPI, HTTPException
-from models import ProductInfo
+from models import ProductInfo, ProductUpdate
 from db import get_mongo_client
 from scraper import scrape_and_append_to_mongodb, extract_number_from_url
 from worker import appraisal_queue
@@ -136,3 +136,67 @@ async def get_appraisal(appraisal_id: str):
     except Exception as e:
         raise HTTPException(status_code=500,
                             detail=f"Internal server error: {e}")
+
+
+@app.delete("/api/product/{product_id}")
+async def delete_product_by_id(product_id: str):
+    try:
+        with get_mongo_client() as client:
+            db = client['mymarket']
+            collection = db['phone']
+
+    # Check if the product with the given product_id exists in the collection
+            product_info = collection.find_one({'product_id': product_id})
+
+            if product_info:
+                # Product found, delete it
+                result = collection.delete_one({'product_id': product_id})
+                if result.deleted_count == 1:
+                    return {"message": "Product deleted successfully"}
+                else:
+                    raise HTTPException(status_code=500,
+                                        detail="Failed to delete product")
+            else:
+                raise HTTPException(status_code=404,
+                                    detail="Product not found")
+
+    except Exception as e:
+        raise HTTPException(status_code=500,
+                            detail=f"Internal server error: {e}")
+
+
+@app.put("/api/product/{product_id}")
+async def update_product_by_id(
+    product_id: str, updated_product: ProductUpdate
+):
+    try:
+        with get_mongo_client() as client:
+            db = client['mymarket']
+            collection = db['phone']
+
+    # Check if the product with the given product_id exists in the collection
+            existing_product = collection.find_one({'product_id': product_id})
+
+            if existing_product:
+                # Product found, update it
+                update_data = updated_product.dict(exclude_unset=True)
+                result = collection.update_one(
+                    {'product_id': product_id},
+                    {'$set': update_data}
+                )
+
+                if result.modified_count == 1:
+                    return {"message": "Product updated successfully"}
+                else:
+                    raise HTTPException(
+                        status_code=500,
+                        detail="Failed to update product"
+                    )
+            else:
+                raise HTTPException(status_code=404,
+                                    detail="Product not found")
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Internal server error: {e}"
+        )
